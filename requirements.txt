@@ -1,0 +1,6 @@
+Django>=5.0,<6.0
+python-escpos>=3.0
+pywin32>=306
+Pillow>=10.0
+python-bidi>=0.4.2
+arabic-reshaper>=3.0.0

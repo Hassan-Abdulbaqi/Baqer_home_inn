@@ -1,0 +1,924 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}إدارة القائمة - {{ cafe_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--color-primary);
+    }
+
+    .management-container {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 1.5rem;
+        height: calc(100vh - 180px);
+    }
+
+    /* Categories Sidebar */
+    .categories-sidebar {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .sidebar-header h3 {
+        font-size: 1.1rem;
+        color: var(--color-primary);
+    }
+
+    .category-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .category-item:hover {
+        border-color: var(--color-primary);
+    }
+
+    .category-item.active {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .category-item.active .category-count {
+        background: var(--color-bg);
+        color: var(--color-primary);
+    }
+
+    .category-name {
+        font-weight: 600;
+        flex: 1;
+    }
+
+    .category-count {
+        background: var(--color-surface);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .category-actions {
+        display: flex;
+        gap: 0.25rem;
+        margin-right: 0.5rem;
+    }
+
+    .category-action-btn {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .category-action-btn:hover {
+        background: var(--color-surface);
+        color: var(--color-text);
+    }
+
+    .category-item.active .category-action-btn:hover {
+        background: rgba(0,0,0,0.2);
+        color: var(--color-bg);
+    }
+
+    /* Items Section */
+    .items-section {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .items-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .items-header h3 {
+        font-size: 1.2rem;
+        color: var(--color-text);
+    }
+
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        overflow-y: auto;
+        flex: 1;
+        padding-left: 0.5rem;
+    }
+
+    .item-card {
+        background: var(--color-surface-light);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .item-card:hover {
+        border-color: var(--color-primary);
+    }
+
+    .item-image {
+        width: 80px;
+        height: 80px;
+        background: var(--color-surface);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-muted);
+        font-size: 0.8rem;
+    }
+
+    .item-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .item-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item-name {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .item-price {
+        color: var(--color-primary);
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .item-status {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+        width: fit-content;
+    }
+
+    .item-status.available {
+        background: rgba(74, 222, 128, 0.2);
+        color: var(--color-success);
+    }
+
+    .item-status.unavailable {
+        background: rgba(248, 113, 113, 0.2);
+        color: var(--color-danger);
+    }
+
+    .item-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .item-action-btn {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.5rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .item-action-btn:hover {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .item-action-btn.delete:hover {
+        border-color: var(--color-danger);
+        background: var(--color-danger);
+        color: white;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-light);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+
+    .form-input::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-light);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+
+    .form-checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-light);
+        border: 2px dashed var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .file-input-label:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .file-preview {
+        margin-top: 0.5rem;
+        width: 100px;
+        height: 100px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        display: none;
+    }
+
+    .file-preview.active {
+        display: block;
+    }
+
+    .file-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--color-text-muted);
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .empty-state svg {
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">إدارة القائمة</h1>
+</div>
+
+<div class="management-container">
+    <!-- Categories Sidebar -->
+    <div class="categories-sidebar">
+        <div class="sidebar-header">
+            <h3>التصنيفات</h3>
+            <button class="btn btn-primary btn-sm" onclick="openCategoryModal()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4"/>
+                </svg>
+                إضافة
+            </button>
+        </div>
+        <div class="category-list" id="category-list">
+            <!-- Categories will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Items Section -->
+    <div class="items-section">
+        <div class="items-header">
+            <h3 id="items-section-title">جميع الأصناف</h3>
+            <button class="btn btn-primary" onclick="openItemModal()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4"/>
+                </svg>
+                إضافة صنف
+            </button>
+        </div>
+        <div class="items-grid" id="items-grid">
+            <!-- Items will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-overlay" id="category-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="category-modal-title">إضافة تصنيف</h2>
+            <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="category-form">
+                <input type="hidden" id="category-id">
+                <div class="form-group">
+                    <label class="form-label">اسم التصنيف</label>
+                    <input type="text" class="form-input" id="category-name" required placeholder="مثال: مشروبات ساخنة">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">ترتيب العرض</label>
+                    <input type="number" class="form-input" id="category-order" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <div class="form-checkbox-group">
+                        <input type="checkbox" class="form-checkbox" id="category-active" checked>
+                        <label for="category-active">تصنيف نشط</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeCategoryModal()">إلغاء</button>
+            <button class="btn btn-primary" onclick="saveCategory()">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Item Modal -->
+<div class="modal-overlay" id="item-modal">
+    <div class="modal" style="max-width: 550px;">
+        <div class="modal-header">
+            <h2 id="item-modal-title">إضافة صنف</h2>
+            <button class="modal-close" onclick="closeItemModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+                <div class="form-group">
+                    <label class="form-label">التصنيف</label>
+                    <select class="form-select" id="item-category" required>
+                        <!-- Categories will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">اسم الصنف</label>
+                    <input type="text" class="form-input" id="item-name" required placeholder="مثال: قهوة تركية">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">السعر (د.ع)</label>
+                    <input type="number" class="form-input" id="item-price" required min="0" placeholder="مثال: 2500">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الوصف (اختياري)</label>
+                    <input type="text" class="form-input" id="item-description" placeholder="وصف قصير للصنف">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الصورة (اختياري)</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" class="file-input" id="item-image" accept="image/*" onchange="previewImage(this)">
+                        <label for="item-image" class="file-input-label">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            اختر صورة
+                        </label>
+                        <div class="file-preview" id="image-preview">
+                            <img id="preview-img" src="" alt="Preview">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-checkbox-group">
+                        <input type="checkbox" class="form-checkbox" id="item-available" checked>
+                        <label for="item-available">متوفر للبيع</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeItemModal()">إلغاء</button>
+            <button class="btn btn-primary" onclick="saveItem()">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-modal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>تأكيد الحذف</h2>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="delete-message">هل أنت متأكد من حذف هذا العنصر؟</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">إلغاء</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">حذف</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let categories = [];
+    let items = [];
+    let selectedCategoryId = null;
+
+    // Load initial data
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCategories();
+        loadItems();
+    });
+
+    // Load categories
+    async function loadCategories() {
+        try {
+            const response = await fetch('/api/categories/');
+            const data = await response.json();
+            if (data.success) {
+                categories = data.categories;
+                renderCategories();
+                populateCategorySelect();
+            }
+        } catch (error) {
+            showToast('خطأ في تحميل التصنيفات', 'error');
+        }
+    }
+
+    // Load items
+    async function loadItems(categoryId = null) {
+        try {
+            let url = '/api/items/';
+            if (categoryId) {
+                url += `?category=${categoryId}`;
+            }
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.success) {
+                items = data.items;
+                renderItems();
+            }
+        } catch (error) {
+            showToast('خطأ في تحميل الأصناف', 'error');
+        }
+    }
+
+    // Render categories
+    function renderCategories() {
+        const container = document.getElementById('category-list');
+        
+        if (categories.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 1rem;">
+                    <p style="font-size: 0.9rem;">لا توجد تصنيفات</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = categories.map(cat => `
+            <div class="category-item ${selectedCategoryId === cat.id ? 'active' : ''}" onclick="selectCategory(${cat.id})">
+                <span class="category-name">${cat.name}</span>
+                <div class="category-actions">
+                    <button class="category-action-btn" onclick="event.stopPropagation(); editCategory(${cat.id})" title="تعديل">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                    <button class="category-action-btn" onclick="event.stopPropagation(); deleteCategory(${cat.id})" title="حذف">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+                <span class="category-count">${cat.items_count}</span>
+            </div>
+        `).join('');
+    }
+
+    // Render items
+    function renderItems() {
+        const container = document.getElementById('items-grid');
+        
+        if (items.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    <p>لا توجد أصناف</p>
+                    <button class="btn btn-primary" onclick="openItemModal()">إضافة صنف جديد</button>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = items.map(item => `
+            <div class="item-card">
+                <div class="item-image">
+                    ${item.image ? `<img src="${item.image}" alt="${item.name}">` : 'لا توجد صورة'}
+                </div>
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${formatPrice(item.price)}</div>
+                    <span class="item-status ${item.is_available ? 'available' : 'unavailable'}">
+                        ${item.is_available ? 'متوفر' : 'غير متوفر'}
+                    </span>
+                </div>
+                <div class="item-actions">
+                    <button class="item-action-btn" onclick="editItem(${item.id})" title="تعديل">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                    <button class="item-action-btn delete" onclick="deleteItem(${item.id})" title="حذف">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Select category
+    function selectCategory(categoryId) {
+        if (selectedCategoryId === categoryId) {
+            selectedCategoryId = null;
+            document.getElementById('items-section-title').textContent = 'جميع الأصناف';
+            loadItems();
+        } else {
+            selectedCategoryId = categoryId;
+            const category = categories.find(c => c.id === categoryId);
+            document.getElementById('items-section-title').textContent = `أصناف: ${category.name}`;
+            loadItems(categoryId);
+        }
+        renderCategories();
+    }
+
+    // Populate category select
+    function populateCategorySelect() {
+        const select = document.getElementById('item-category');
+        select.innerHTML = categories.map(cat => 
+            `<option value="${cat.id}">${cat.name}</option>`
+        ).join('');
+    }
+
+    // Category Modal Functions
+    function openCategoryModal(categoryId = null) {
+        const modal = document.getElementById('category-modal');
+        const title = document.getElementById('category-modal-title');
+        
+        if (categoryId) {
+            const category = categories.find(c => c.id === categoryId);
+            title.textContent = 'تعديل التصنيف';
+            document.getElementById('category-id').value = categoryId;
+            document.getElementById('category-name').value = category.name;
+            document.getElementById('category-order').value = category.order;
+            document.getElementById('category-active').checked = category.is_active;
+        } else {
+            title.textContent = 'إضافة تصنيف';
+            document.getElementById('category-form').reset();
+            document.getElementById('category-id').value = '';
+            document.getElementById('category-active').checked = true;
+        }
+        
+        modal.classList.add('active');
+    }
+
+    function closeCategoryModal() {
+        document.getElementById('category-modal').classList.remove('active');
+    }
+
+    function editCategory(categoryId) {
+        openCategoryModal(categoryId);
+    }
+
+    async function saveCategory() {
+        const id = document.getElementById('category-id').value;
+        const data = {
+            name: document.getElementById('category-name').value,
+            order: parseInt(document.getElementById('category-order').value) || 0,
+            is_active: document.getElementById('category-active').checked
+        };
+
+        try {
+            const url = id ? `/api/categories/${id}/` : '/api/categories/';
+            const method = id ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(id ? 'تم تحديث التصنيف' : 'تم إضافة التصنيف');
+                closeCategoryModal();
+                loadCategories();
+                loadItems(selectedCategoryId);
+            } else {
+                showToast(result.error || 'حدث خطأ', 'error');
+            }
+        } catch (error) {
+            showToast('حدث خطأ في الاتصال', 'error');
+        }
+    }
+
+    function deleteCategory(categoryId) {
+        const category = categories.find(c => c.id === categoryId);
+        document.getElementById('delete-message').textContent = 
+            `هل أنت متأكد من حذف التصنيف "${category.name}"؟ سيتم حذف جميع الأصناف المرتبطة به.`;
+        
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+            try {
+                const response = await fetch(`/api/categories/${categoryId}/`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('تم حذف التصنيف');
+                    closeDeleteModal();
+                    if (selectedCategoryId === categoryId) {
+                        selectedCategoryId = null;
+                        document.getElementById('items-section-title').textContent = 'جميع الأصناف';
+                    }
+                    loadCategories();
+                    loadItems(selectedCategoryId);
+                } else {
+                    showToast(result.error || 'حدث خطأ', 'error');
+                }
+            } catch (error) {
+                showToast('حدث خطأ في الاتصال', 'error');
+            }
+        };
+        
+        document.getElementById('delete-modal').classList.add('active');
+    }
+
+    // Item Modal Functions
+    function openItemModal(itemId = null) {
+        const modal = document.getElementById('item-modal');
+        const title = document.getElementById('item-modal-title');
+        const preview = document.getElementById('image-preview');
+        
+        preview.classList.remove('active');
+        
+        if (itemId) {
+            const item = items.find(i => i.id === itemId);
+            title.textContent = 'تعديل صنف';
+            document.getElementById('item-id').value = itemId;
+            document.getElementById('item-category').value = item.category_id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-price').value = item.price;
+            document.getElementById('item-description').value = item.description || '';
+            document.getElementById('item-available').checked = item.is_available;
+            
+            if (item.image) {
+                document.getElementById('preview-img').src = item.image;
+                preview.classList.add('active');
+            }
+        } else {
+            title.textContent = 'إضافة صنف';
+            document.getElementById('item-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-available').checked = true;
+            
+            if (selectedCategoryId) {
+                document.getElementById('item-category').value = selectedCategoryId;
+            }
+        }
+        
+        modal.classList.add('active');
+    }
+
+    function closeItemModal() {
+        document.getElementById('item-modal').classList.remove('active');
+    }
+
+    function editItem(itemId) {
+        openItemModal(itemId);
+    }
+
+    function previewImage(input) {
+        const preview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.classList.add('active');
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.classList.remove('active');
+        }
+    }
+
+    async function saveItem() {
+        const id = document.getElementById('item-id').value;
+        const formData = new FormData();
+        
+        formData.append('category_id', document.getElementById('item-category').value);
+        formData.append('name', document.getElementById('item-name').value);
+        formData.append('price', document.getElementById('item-price').value);
+        formData.append('description', document.getElementById('item-description').value);
+        formData.append('is_available', document.getElementById('item-available').checked);
+        
+        const imageInput = document.getElementById('item-image');
+        if (imageInput.files && imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+        }
+
+        try {
+            const url = id ? `/api/items/${id}/` : '/api/items/';
+            const method = id ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(id ? 'تم تحديث الصنف' : 'تم إضافة الصنف');
+                closeItemModal();
+                loadCategories();
+                loadItems(selectedCategoryId);
+            } else {
+                showToast(result.error || 'حدث خطأ', 'error');
+            }
+        } catch (error) {
+            showToast('حدث خطأ في الاتصال', 'error');
+        }
+    }
+
+    function deleteItem(itemId) {
+        const item = items.find(i => i.id === itemId);
+        document.getElementById('delete-message').textContent = 
+            `هل أنت متأكد من حذف الصنف "${item.name}"؟`;
+        
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+            try {
+                const response = await fetch(`/api/items/${itemId}/`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('تم حذف الصنف');
+                    closeDeleteModal();
+                    loadCategories();
+                    loadItems(selectedCategoryId);
+                } else {
+                    showToast(result.error || 'حدث خطأ', 'error');
+                }
+            } catch (error) {
+                showToast('حدث خطأ في الاتصال', 'error');
+            }
+        };
+        
+        document.getElementById('delete-modal').classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delete-modal').classList.remove('active');
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.classList.remove('active');
+            });
+        }
+    });
+</script>
+{% endblock %}

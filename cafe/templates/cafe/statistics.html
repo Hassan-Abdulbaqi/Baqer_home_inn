@@ -1,0 +1,513 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}الإحصائيات - {{ cafe_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .stats-header h1 {
+        font-size: 1.75rem;
+        color: var(--color-primary);
+    }
+
+    .period-selector {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .period-btn {
+        padding: 0.75rem 1.5rem;
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius);
+        color: var(--color-text);
+        font-family: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .period-btn:hover {
+        border-color: var(--color-primary);
+    }
+
+    .period-btn.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    /* Stats Cards */
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .stat-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+    }
+
+    .stat-icon.orders {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+
+    .stat-icon.revenue {
+        background: linear-gradient(135deg, var(--color-success) 0%, #16a34a 100%);
+    }
+
+    .stat-icon.average {
+        background: linear-gradient(135deg, var(--color-warning) 0%, #d97706 100%);
+    }
+
+    .stat-info h3 {
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--color-text);
+    }
+
+    .stat-value.loading {
+        background: linear-gradient(90deg, var(--color-surface-light) 25%, var(--color-surface) 50%, var(--color-surface-light) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: var(--radius-sm);
+        color: transparent;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Data Tables */
+    .data-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+        .data-section {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .data-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .data-card-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .data-card-header h2 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .data-card-body {
+        padding: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Table Styles */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem 1rem;
+        text-align: right;
+    }
+
+    .data-table th {
+        background: var(--color-surface-light);
+        font-weight: 600;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .data-table tr {
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .data-table tr:last-child {
+        border-bottom: none;
+    }
+
+    .data-table tr:hover {
+        background: var(--color-surface-light);
+    }
+
+    .data-table .number {
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    /* Top Items */
+    .top-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.5rem;
+        background: var(--color-surface-light);
+    }
+
+    .top-item-rank {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--color-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .top-item-rank.gold { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #1a1a1a; }
+    .top-item-rank.silver { background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%); color: white; }
+    .top-item-rank.bronze { background: linear-gradient(135deg, #d97706 0%, #92400e 100%); color: white; }
+
+    .top-item-info {
+        flex: 1;
+    }
+
+    .top-item-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .top-item-stats {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+    }
+
+    .top-item-revenue {
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--color-text-muted);
+    }
+
+    .empty-state svg {
+        opacity: 0.5;
+        margin-bottom: 1rem;
+    }
+
+    /* Chart container */
+    .chart-container {
+        padding: 1rem;
+        height: 300px;
+    }
+
+    /* Refresh button */
+    .refresh-btn {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+        color: var(--color-primary);
+        background: var(--color-surface-light);
+    }
+
+    .refresh-btn.loading svg {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-header">
+    <h1>📊 إحصائيات المبيعات</h1>
+    <div class="period-selector">
+        <button class="period-btn active" data-period="today">اليوم</button>
+        <button class="period-btn" data-period="week">الأسبوع</button>
+        <button class="period-btn" data-period="month">الشهر</button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-cards">
+    <div class="stat-card">
+        <div class="stat-icon orders">📦</div>
+        <div class="stat-info">
+            <h3>عدد الطلبات</h3>
+            <div class="stat-value loading" id="total-orders">---</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon revenue">💰</div>
+        <div class="stat-info">
+            <h3>إجمالي الإيرادات</h3>
+            <div class="stat-value loading" id="total-revenue">---</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon average">📈</div>
+        <div class="stat-info">
+            <h3>متوسط قيمة الطلب</h3>
+            <div class="stat-value loading" id="average-order">---</div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Section -->
+<div class="data-section">
+    <!-- Daily Sales Table -->
+    <div class="data-card">
+        <div class="data-card-header">
+            <h2>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                المبيعات اليومية
+            </h2>
+            <button class="refresh-btn" id="refresh-btn" title="تحديث">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </button>
+        </div>
+        <div class="data-card-body">
+            <table class="data-table" id="daily-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>عدد الطلبات</th>
+                        <th>الإيرادات</th>
+                    </tr>
+                </thead>
+                <tbody id="daily-tbody">
+                    <tr>
+                        <td colspan="3" class="empty-state">جاري التحميل...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top Selling Items -->
+    <div class="data-card">
+        <div class="data-card-header">
+            <h2>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+                الأصناف الأكثر مبيعاً
+            </h2>
+        </div>
+        <div class="data-card-body" id="top-items-container">
+            <div class="empty-state">جاري التحميل...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPeriod = 'today';
+
+    // Period selector
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = btn.dataset.period;
+            loadStatistics();
+        });
+    });
+
+    // Refresh button
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+        loadStatistics();
+    });
+
+    // Load statistics
+    async function loadStatistics() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        refreshBtn.classList.add('loading');
+        
+        // Set loading state
+        document.getElementById('total-orders').classList.add('loading');
+        document.getElementById('total-revenue').classList.add('loading');
+        document.getElementById('average-order').classList.add('loading');
+        
+        try {
+            const response = await fetch(`/api/statistics/?period=${currentPeriod}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update stat cards
+                const totalOrders = document.getElementById('total-orders');
+                const totalRevenue = document.getElementById('total-revenue');
+                const averageOrder = document.getElementById('average-order');
+                
+                totalOrders.textContent = data.total_orders;
+                totalOrders.classList.remove('loading');
+                
+                totalRevenue.textContent = formatPrice(data.total_revenue);
+                totalRevenue.classList.remove('loading');
+                
+                const avg = data.total_orders > 0 ? Math.round(data.total_revenue / data.total_orders) : 0;
+                averageOrder.textContent = formatPrice(avg);
+                averageOrder.classList.remove('loading');
+                
+                // Update daily table
+                updateDailyTable(data.daily_stats);
+                
+                // Update top items
+                updateTopItems(data.top_items);
+            } else {
+                showToast('حدث خطأ في تحميل البيانات', 'error');
+            }
+        } catch (error) {
+            console.error(error);
+            showToast('حدث خطأ في الاتصال', 'error');
+        }
+        
+        refreshBtn.classList.remove('loading');
+    }
+
+    // Update daily sales table
+    function updateDailyTable(dailyStats) {
+        const tbody = document.getElementById('daily-tbody');
+        
+        if (!dailyStats || dailyStats.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="empty-state">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                        </svg>
+                        <p>لا توجد بيانات لهذه الفترة</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        dailyStats.forEach(day => {
+            const date = new Date(day.date);
+            const formattedDate = date.toLocaleDateString('ar-IQ', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            html += `
+                <tr>
+                    <td>${formattedDate}</td>
+                    <td class="number">${day.orders_count}</td>
+                    <td class="number">${formatPrice(day.revenue)}</td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    }
+
+    // Update top items list
+    function updateTopItems(topItems) {
+        const container = document.getElementById('top-items-container');
+        
+        if (!topItems || topItems.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                    </svg>
+                    <p>لا توجد بيانات لهذه الفترة</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        topItems.forEach((item, index) => {
+            let rankClass = '';
+            if (index === 0) rankClass = 'gold';
+            else if (index === 1) rankClass = 'silver';
+            else if (index === 2) rankClass = 'bronze';
+            
+            html += `
+                <div class="top-item">
+                    <div class="top-item-rank ${rankClass}">${index + 1}</div>
+                    <div class="top-item-info">
+                        <div class="top-item-name">${item.item_name}</div>
+                        <div class="top-item-stats">${item.total_quantity} وحدة مباعة</div>
+                    </div>
+                    <div class="top-item-revenue">${formatPrice(item.total_revenue)}</div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    // Initial load
+    loadStatistics();
+</script>
+{% endblock %}

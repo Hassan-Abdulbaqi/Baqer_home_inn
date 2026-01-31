@@ -1,0 +1,12 @@
+/* Additional styles - most styles are in base.html */
+/* This file can be used for custom overrides */
+
+/* Print styles */
+@media print {
+    .header,
+    .nav-links,
+    .cart-section,
+    .modal-overlay {
+        display: none !important;
+    }
+}

@@ -1,0 +1,779 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}الطلبات السابقة - {{ cafe_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .orders-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    /* Filters Section */
+    .filters-section {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+    }
+
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .filters-header h2 {
+        font-size: 1.2rem;
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        font-weight: 500;
+    }
+
+    .filter-input {
+        padding: 0.75rem 1rem;
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-family: inherit;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+
+    .filter-input::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    /* Orders Table */
+    .orders-table-container {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    .orders-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .orders-table th,
+    .orders-table td {
+        padding: 1rem 1.25rem;
+        text-align: right;
+    }
+
+    .orders-table th {
+        background: var(--color-surface-light);
+        font-weight: 600;
+        color: var(--color-text-muted);
+        border-bottom: 1px solid var(--color-border);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .orders-table tr {
+        border-bottom: 1px solid var(--color-border);
+        transition: background 0.2s;
+    }
+
+    .orders-table tbody tr:hover {
+        background: var(--color-surface-light);
+    }
+
+    .orders-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .order-number {
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        color: var(--color-primary);
+        background: rgba(212, 165, 116, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .order-date {
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .order-amount {
+        font-weight: 600;
+        color: var(--color-success);
+    }
+
+    .order-items-preview {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .print-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .print-badge.printed {
+        background: rgba(74, 222, 128, 0.15);
+        color: var(--color-success);
+    }
+
+    .print-badge.not-printed {
+        background: rgba(248, 113, 113, 0.15);
+        color: var(--color-danger);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        background: var(--color-surface-light);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: var(--color-primary);
+        color: var(--color-bg);
+        border-color: var(--color-primary);
+    }
+
+    .btn-icon.btn-print:hover {
+        background: var(--color-success);
+        border-color: var(--color-success);
+    }
+
+    /* Pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background: var(--color-surface-light);
+        border-top: 1px solid var(--color-border);
+    }
+
+    .pagination-info {
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .pagination-btn {
+        padding: 0.5rem 1rem;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+        background: var(--color-primary);
+        color: var(--color-bg);
+        border-color: var(--color-primary);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--color-text-muted);
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: var(--color-text);
+    }
+
+    /* Loading State */
+    .loading-overlay {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 4rem;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--color-border);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Order Details Modal */
+    .order-details-modal .modal {
+        max-width: 600px;
+    }
+
+    .order-meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .meta-item {
+        background: var(--color-bg);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+    }
+
+    .meta-label {
+        font-size: 0.85rem;
+        color: var(--color-text-muted);
+        margin-bottom: 0.25rem;
+    }
+
+    .meta-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .order-items-list {
+        background: var(--color-bg);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+    }
+
+    .order-items-list h4 {
+        padding: 0.75rem 1rem;
+        background: var(--color-surface-light);
+        font-size: 0.9rem;
+        color: var(--color-text-muted);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .order-item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .order-item-row:last-child {
+        border-bottom: none;
+    }
+
+    .item-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .item-quantity {
+        background: var(--color-primary);
+        color: var(--color-bg);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .item-subtotal {
+        color: var(--color-success);
+        font-weight: 500;
+    }
+
+    .order-totals {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--color-border);
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+
+    .total-row.grand-total {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-border);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .orders-table th,
+        .orders-table td {
+            padding: 0.75rem;
+        }
+
+        .order-items-preview {
+            display: none;
+        }
+
+        .pagination-container {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .order-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h2>
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                </svg>
+                تصفية الطلبات
+            </h2>
+            <button class="btn btn-secondary btn-sm" onclick="resetFilters()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                إعادة تعيين
+            </button>
+        </div>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="search">البحث برقم الطلب</label>
+                <input type="text" id="search" class="filter-input" placeholder="مثال: 20260118-0001">
+            </div>
+            <div class="filter-group">
+                <label for="date-from">من تاريخ</label>
+                <input type="date" id="date-from" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <label for="date-to">إلى تاريخ</label>
+                <input type="date" id="date-to" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <button class="btn btn-primary" onclick="loadOrders(1)" style="width: 100%;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    بحث
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="orders-table-container">
+        <div id="orders-content">
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal-overlay order-details-modal" id="order-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>تفاصيل الطلب</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="order-modal-content">
+            <!-- Content will be loaded dynamically -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">إغلاق</button>
+            <button class="btn btn-success" id="modal-print-btn" onclick="printFromModal()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                طباعة الإيصال
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentOrderId = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOrders(1);
+        
+        // Add enter key listener to search input
+        document.getElementById('search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loadOrders(1);
+        });
+    });
+
+    async function loadOrders(page = 1) {
+        currentPage = page;
+        const search = document.getElementById('search').value;
+        const dateFrom = document.getElementById('date-from').value;
+        const dateTo = document.getElementById('date-to').value;
+
+        const params = new URLSearchParams({
+            page: page,
+            per_page: 15
+        });
+
+        if (search) params.append('search', search);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+
+        document.getElementById('orders-content').innerHTML = `
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/api/orders/?${params}`);
+            const data = await response.json();
+
+            if (data.success) {
+                totalPages = data.pagination.total_pages;
+                renderOrders(data.orders, data.pagination);
+            } else {
+                showToast(data.error || 'حدث خطأ أثناء تحميل الطلبات', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+            showToast('حدث خطأ أثناء تحميل الطلبات', 'error');
+        }
+    }
+
+    function renderOrders(orders, pagination) {
+        const container = document.getElementById('orders-content');
+
+        if (orders.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    <h3>لا توجد طلبات</h3>
+                    <p>لم يتم العثور على طلبات تطابق معايير البحث</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = `
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>التاريخ والوقت</th>
+                        <th>الأصناف</th>
+                        <th>المجموع</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (const order of orders) {
+            const date = new Date(order.created_at);
+            const formattedDate = date.toLocaleDateString('ar-IQ', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const formattedTime = date.toLocaleTimeString('ar-IQ', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const itemsPreview = order.items.map(i => `${i.item_name} (${i.quantity})`).join('، ');
+
+            html += `
+                <tr>
+                    <td><span class="order-number">${order.order_number}</span></td>
+                    <td class="order-date">${formattedDate}<br>${formattedTime}</td>
+                    <td class="order-items-preview" title="${itemsPreview}">${itemsPreview}</td>
+                    <td class="order-amount">${formatPrice(order.total_amount)}</td>
+                    <td>
+                        <span class="print-badge ${order.is_printed ? 'printed' : 'not-printed'}">
+                            ${order.is_printed ? '✓ مطبوع' : '○ غير مطبوع'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon" onclick="viewOrder(${order.id})" title="عرض التفاصيل">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-print" onclick="printOrder(${order.id})" title="طباعة الإيصال">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        html += `
+                </tbody>
+            </table>
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    عرض ${((pagination.page - 1) * pagination.per_page) + 1} - ${Math.min(pagination.page * pagination.per_page, pagination.total_count)} من ${pagination.total_count} طلب
+                </div>
+                <div class="pagination-controls">
+                    <button class="pagination-btn" onclick="loadOrders(${pagination.page - 1})" ${pagination.page <= 1 ? 'disabled' : ''}>
+                        السابق
+                    </button>
+                    ${renderPaginationNumbers(pagination)}
+                    <button class="pagination-btn" onclick="loadOrders(${pagination.page + 1})" ${pagination.page >= pagination.total_pages ? 'disabled' : ''}>
+                        التالي
+                    </button>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function renderPaginationNumbers(pagination) {
+        let html = '';
+        const { page, total_pages } = pagination;
+        
+        // Show max 5 page numbers
+        let start = Math.max(1, page - 2);
+        let end = Math.min(total_pages, start + 4);
+        start = Math.max(1, end - 4);
+
+        for (let i = start; i <= end; i++) {
+            html += `<button class="pagination-btn ${i === page ? 'active' : ''}" onclick="loadOrders(${i})">${i}</button>`;
+        }
+
+        return html;
+    }
+
+    async function viewOrder(orderId) {
+        currentOrderId = orderId;
+        
+        try {
+            const response = await fetch(`/api/orders/${orderId}/`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderOrderModal(data.order);
+                document.getElementById('order-modal').classList.add('active');
+            } else {
+                showToast(data.error || 'حدث خطأ', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('حدث خطأ أثناء تحميل تفاصيل الطلب', 'error');
+        }
+    }
+
+    function renderOrderModal(order) {
+        const date = new Date(order.created_at);
+        const formattedDateTime = date.toLocaleDateString('ar-IQ', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let itemsHtml = order.items.map(item => `
+            <div class="order-item-row">
+                <div class="item-info">
+                    <span class="item-quantity">${item.quantity}</span>
+                    <span>${item.item_name}</span>
+                </div>
+                <span class="item-subtotal">${formatPrice(item.subtotal)}</span>
+            </div>
+        `).join('');
+
+        document.getElementById('order-modal-content').innerHTML = `
+            <div class="order-meta">
+                <div class="meta-item">
+                    <div class="meta-label">رقم الطلب</div>
+                    <div class="meta-value order-number">${order.order_number}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">التاريخ والوقت</div>
+                    <div class="meta-value">${formattedDateTime}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">المبلغ المدفوع</div>
+                    <div class="meta-value">${formatPrice(order.amount_paid)}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">الباقي</div>
+                    <div class="meta-value">${formatPrice(order.change_given)}</div>
+                </div>
+            </div>
+
+            <div class="order-items-list">
+                <h4>الأصناف المطلوبة</h4>
+                ${itemsHtml}
+            </div>
+
+            <div class="order-totals">
+                <div class="total-row">
+                    <span>عدد الأصناف</span>
+                    <span>${order.items.reduce((sum, i) => sum + i.quantity, 0)} صنف</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>المجموع الكلي</span>
+                    <span>${formatPrice(order.total_amount)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function closeModal() {
+        document.getElementById('order-modal').classList.remove('active');
+        currentOrderId = null;
+    }
+
+    async function printOrder(orderId) {
+        try {
+            const response = await fetch(`/api/order/${orderId}/print/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('تمت الطباعة بنجاح', 'success');
+                loadOrders(currentPage);
+            } else {
+                showToast(data.error || 'فشلت الطباعة', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('حدث خطأ أثناء الطباعة', 'error');
+        }
+    }
+
+    function printFromModal() {
+        if (currentOrderId) {
+            printOrder(currentOrderId);
+        }
+    }
+
+    function resetFilters() {
+        document.getElementById('search').value = '';
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        loadOrders(1);
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    // Close modal on overlay click
+    document.getElementById('order-modal').addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) closeModal();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1164 @@
+{% extends 'cafe/base.html' %}
+
+{% block title %}نقطة البيع - {{ cafe_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pos-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+        height: calc(100vh - 130px);
+    }
+
+    /* Menu Section */
+    .menu-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow: hidden;
+    }
+
+    .category-tabs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        padding-bottom: 0.5rem;
+    }
+
+    .category-tab {
+        padding: 0.75rem 1.5rem;
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius);
+        color: var(--color-text);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .category-tab:hover {
+        border-color: var(--color-primary);
+    }
+
+    .category-tab.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 1rem;
+        overflow-y: auto;
+        padding-left: 0.5rem;
+        flex: 1;
+        align-content: start;
+    }
+
+    .menu-item {
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 120px;
+    }
+
+    .menu-item:hover {
+        border-color: var(--color-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+
+    .menu-item:active {
+        transform: scale(0.98);
+    }
+
+    .menu-item.has-image {
+        min-height: 140px;
+    }
+
+    .menu-item-image {
+        width: 60px;
+        height: 60px;
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        overflow: hidden;
+    }
+
+    .menu-item-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .menu-item-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+    }
+
+    .menu-item.no-image .menu-item-name {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .menu-item-price {
+        color: var(--color-primary);
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .menu-item.no-image .menu-item-price {
+        font-size: 1.15rem;
+    }
+
+    /* Cart Section */
+    .cart-section {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .cart-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-header h2 {
+        font-size: 1.1rem;
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .cart-clear {
+        background: none;
+        border: none;
+        color: var(--color-danger);
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .cart-clear:hover {
+        text-decoration: underline;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .cart-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--color-text-muted);
+        gap: 1rem;
+    }
+
+    .cart-empty svg {
+        opacity: 0.5;
+    }
+
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.5rem;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .cart-item-info {
+        flex: 1;
+    }
+
+    .cart-item-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .cart-item-price {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+    }
+
+    .cart-item-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .qty-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .qty-btn:hover {
+        background: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .qty-btn.remove:hover {
+        background: var(--color-danger);
+        color: white;
+    }
+
+    .cart-item-qty {
+        font-weight: 700;
+        font-size: 1.1rem;
+        min-width: 30px;
+        text-align: center;
+    }
+
+    .cart-item-subtotal {
+        font-weight: 700;
+        color: var(--color-primary);
+        min-width: 80px;
+        text-align: left;
+    }
+
+    /* Cart Footer */
+    .cart-footer {
+        border-top: 1px solid var(--color-border);
+        padding: 1rem;
+    }
+
+    .cart-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        margin-bottom: 1rem;
+    }
+
+    .cart-total-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .cart-total-amount {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--color-primary);
+    }
+
+    .checkout-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+    }
+
+    /* Payment Modal */
+    .payment-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .payment-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    .bill-buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+    }
+
+    .bill-btn {
+        padding: 0.75rem;
+        background: var(--color-surface-light);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+
+    .bill-btn:hover {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .bill-btn:active {
+        transform: scale(0.95);
+    }
+
+    .paid-amount-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        margin-top: 1rem;
+    }
+
+    .paid-label {
+        font-weight: 600;
+    }
+
+    .paid-amount {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--color-success);
+    }
+
+    .clear-paid-btn {
+        background: var(--color-danger);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 600;
+    }
+
+    /* Change Display */
+    .change-section {
+        background: linear-gradient(135deg, var(--color-surface-light) 0%, var(--color-surface) 100%);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .change-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .change-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .change-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--color-warning);
+    }
+
+    .change-breakdown {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .change-bill {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--color-surface);
+        border-radius: var(--radius-sm);
+        font-size: 0.9rem;
+    }
+
+    .change-bill-count {
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    /* Unavailable Bills Section */
+    .unavailable-bills-section {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--color-surface-light);
+        border-radius: var(--radius);
+        border: 2px solid var(--color-border);
+    }
+
+    .unavailable-bills-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .unavailable-bills-section h3 svg {
+        color: var(--color-warning);
+    }
+
+    .unavailable-bills-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+    }
+
+    .unavailable-bill-btn {
+        padding: 0.6rem;
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+        font-size: 0.85rem;
+        position: relative;
+    }
+
+    .unavailable-bill-btn:hover {
+        border-color: var(--color-danger);
+    }
+
+    .unavailable-bill-btn.unavailable {
+        background: var(--color-danger);
+        border-color: var(--color-danger);
+        color: white;
+        text-decoration: line-through;
+    }
+
+    .unavailable-bill-btn.unavailable::after {
+        content: '✕';
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        font-size: 0.7rem;
+    }
+
+    /* Change Warning/Suggestion */
+    .change-warning {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+        border: 2px solid var(--color-warning);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .change-warning-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #856404;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .change-warning-text {
+        color: #856404;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .suggestion-bills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+
+    .suggestion-bill {
+        padding: 0.5rem 0.75rem;
+        background: white;
+        border: 2px solid var(--color-success);
+        border-radius: var(--radius-sm);
+        color: var(--color-success);
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .change-impossible {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border: 2px solid var(--color-danger);
+    }
+
+    .change-impossible .change-warning-header,
+    .change-impossible .change-warning-text {
+        color: #721c24;
+    }
+
+    .order-summary {
+        background: var(--color-surface-light);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+
+    .summary-row.total {
+        border-top: 1px solid var(--color-border);
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .summary-row.total .summary-value {
+        color: var(--color-primary);
+    }
+
+    /* No items message */
+    .no-items-message {
+        text-align: center;
+        padding: 3rem;
+        color: var(--color-text-muted);
+    }
+
+    /* Success animation */
+    @keyframes successPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .success-animation {
+        animation: successPulse 0.5s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-container">
+    <!-- Menu Section -->
+    <div class="menu-section">
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+            <button class="category-tab active" data-category="all">الكل</button>
+            {% for category in categories %}
+            <button class="category-tab" data-category="{{ category.id }}">{{ category.name }}</button>
+            {% endfor %}
+        </div>
+        
+        <!-- Menu Grid -->
+        <div class="menu-grid" id="menu-grid">
+            {% for category in categories %}
+                {% for item in category.items.all %}
+                    {% if item.is_available %}
+                    <div class="menu-item {% if item.image %}has-image{% else %}no-image{% endif %}" 
+                         data-id="{{ item.id }}" 
+                         data-name="{{ item.name }}" 
+                         data-price="{{ item.price }}"
+                         data-category="{{ category.id }}">
+                        {% if item.image %}
+                        <div class="menu-item-image">
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                        </div>
+                        {% endif %}
+                        <div class="menu-item-name">{{ item.name }}</div>
+                        <div class="menu-item-price">{{ item.price|floatformat:0 }} د.ع</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% empty %}
+            <div class="no-items-message">
+                <p>لا توجد أصناف حالياً</p>
+                <p class="text-muted mt-1">قم بإضافة أصناف من لوحة الإدارة</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="cart-section">
+        <div class="cart-header">
+            <h2>
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                سلة الطلب
+            </h2>
+            <button class="cart-clear" id="clear-cart" style="display: none;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                مسح
+            </button>
+        </div>
+        
+        <div class="cart-items" id="cart-items">
+            <div class="cart-empty">
+                <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                </svg>
+                <p>السلة فارغة</p>
+                <p class="text-muted" style="font-size: 0.9rem;">اختر أصناف من القائمة</p>
+            </div>
+        </div>
+        
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span class="cart-total-label">المجموع</span>
+                <span class="cart-total-amount" id="cart-total">0 د.ع</span>
+            </div>
+            <button class="btn btn-primary checkout-btn" id="checkout-btn" disabled>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                الدفع
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="payment-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>إتمام الدفع</h2>
+            <button class="modal-close" id="close-payment">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>عدد الأصناف</span>
+                    <span id="summary-items">0</span>
+                </div>
+                <div class="summary-row total">
+                    <span>المجموع الكلي</span>
+                    <span class="summary-value" id="summary-total">0 د.ع</span>
+                </div>
+            </div>
+
+            <!-- Unavailable Bills Selection -->
+            <div class="unavailable-bills-section">
+                <h3>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    الفئات غير المتوفرة (اضغط لتحديد)
+                </h3>
+                <div class="unavailable-bills-grid">
+                    <button class="unavailable-bill-btn" data-bill="250">250</button>
+                    <button class="unavailable-bill-btn" data-bill="500">500</button>
+                    <button class="unavailable-bill-btn" data-bill="1000">1,000</button>
+                    <button class="unavailable-bill-btn" data-bill="5000">5,000</button>
+                    <button class="unavailable-bill-btn" data-bill="10000">10,000</button>
+                    <button class="unavailable-bill-btn" data-bill="25000">25,000</button>
+                    <button class="unavailable-bill-btn" data-bill="50000">50,000</button>
+                    <button class="unavailable-bill-btn" data-bill="100000">100,000</button>
+                </div>
+            </div>
+
+            <!-- Bill Buttons -->
+            <div class="payment-section">
+                <h3>اختر الفئات المدفوعة</h3>
+                <div class="bill-buttons">
+                    <button class="bill-btn" data-amount="250">250</button>
+                    <button class="bill-btn" data-amount="500">500</button>
+                    <button class="bill-btn" data-amount="1000">1,000</button>
+                    <button class="bill-btn" data-amount="5000">5,000</button>
+                    <button class="bill-btn" data-amount="10000">10,000</button>
+                    <button class="bill-btn" data-amount="25000">25,000</button>
+                    <button class="bill-btn" data-amount="50000">50,000</button>
+                    <button class="bill-btn" data-amount="100000">100,000</button>
+                </div>
+                <div class="paid-amount-display">
+                    <span class="paid-label">المبلغ المدفوع:</span>
+                    <span class="paid-amount" id="paid-amount">0 د.ع</span>
+                    <button class="clear-paid-btn" id="clear-paid">مسح</button>
+                </div>
+            </div>
+
+            <!-- Change Warning/Suggestion -->
+            <div class="change-warning" id="change-warning" style="display: none;">
+                <div class="change-warning-header">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span id="change-warning-title">تنبيه</span>
+                </div>
+                <div class="change-warning-text" id="change-warning-text"></div>
+                <div class="suggestion-bills" id="suggestion-bills"></div>
+            </div>
+
+            <!-- Change Display -->
+            <div class="change-section" id="change-section" style="display: none;">
+                <div class="change-header">
+                    <span class="change-label">الباقي للزبون:</span>
+                    <span class="change-amount" id="change-amount">0 د.ع</span>
+                </div>
+                <div class="change-breakdown" id="change-breakdown"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancel-payment">إلغاء</button>
+            <button class="btn btn-success btn-lg" id="confirm-payment" disabled>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 13l4 4L19 7"/>
+                </svg>
+                تأكيد وطباعة
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="success-modal">
+    <div class="modal" style="text-align: center;">
+        <div class="modal-body" style="padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;" class="success-animation">✓</div>
+            <h2 style="color: var(--color-success); margin-bottom: 1rem;">تم الطلب بنجاح!</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 0.5rem;">رقم الطلب</p>
+            <p style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);" id="success-order-number"></p>
+            <p style="margin-top: 1rem; color: var(--color-text-muted);" id="success-print-status"></p>
+        </div>
+        <div class="modal-footer" style="justify-content: center;">
+            <button class="btn btn-primary btn-lg" id="new-order-btn">طلب جديد</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Cart state
+    let cart = [];
+    let paidAmount = 0;
+    let currentOrderTotal = 0;
+
+    // IQD bill denominations
+    const IQD_BILLS = [100000, 50000, 25000, 10000, 5000, 1000, 500, 250];
+    
+    // Unavailable bills that the cashier doesn't have
+    let unavailableBills = new Set();
+
+    // DOM Elements
+    const menuGrid = document.getElementById('menu-grid');
+    const cartItems = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+    const clearCartBtn = document.getElementById('clear-cart');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const paymentModal = document.getElementById('payment-modal');
+    const successModal = document.getElementById('success-modal');
+
+    // Category filtering
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const category = tab.dataset.category;
+            document.querySelectorAll('.menu-item').forEach(item => {
+                if (category === 'all' || item.dataset.category === category) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Add item to cart
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const id = parseInt(item.dataset.id);
+            const name = item.dataset.name;
+            const price = parseInt(item.dataset.price);
+            
+            const existingItem = cart.find(i => i.id === id);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+            
+            updateCartDisplay();
+            item.classList.add('pulse');
+            setTimeout(() => item.classList.remove('pulse'), 300);
+        });
+    });
+
+    // Update cart display
+    function updateCartDisplay() {
+        if (cart.length === 0) {
+            cartItems.innerHTML = `
+                <div class="cart-empty">
+                    <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                    </svg>
+                    <p>السلة فارغة</p>
+                    <p class="text-muted" style="font-size: 0.9rem;">اختر أصناف من القائمة</p>
+                </div>
+            `;
+            cartTotal.textContent = '0 د.ع';
+            currentOrderTotal = 0;
+            clearCartBtn.style.display = 'none';
+            checkoutBtn.disabled = true;
+        } else {
+            let html = '';
+            let total = 0;
+            
+            cart.forEach((item, index) => {
+                const subtotal = item.price * item.quantity;
+                total += subtotal;
+                html += `
+                    <div class="cart-item fade-in">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">${formatPrice(item.price)} × ${item.quantity}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="qty-btn remove" onclick="updateQuantity(${index}, -1)">−</button>
+                            <span class="cart-item-qty">${item.quantity}</span>
+                            <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
+                        </div>
+                        <div class="cart-item-subtotal">${formatPrice(subtotal)}</div>
+                    </div>
+                `;
+            });
+            
+            cartItems.innerHTML = html;
+            cartTotal.textContent = formatPrice(total);
+            currentOrderTotal = total;
+            clearCartBtn.style.display = 'flex';
+            checkoutBtn.disabled = false;
+        }
+    }
+
+    // Update item quantity
+    function updateQuantity(index, delta) {
+        cart[index].quantity += delta;
+        if (cart[index].quantity <= 0) {
+            cart.splice(index, 1);
+        }
+        updateCartDisplay();
+    }
+
+    // Clear cart
+    clearCartBtn.addEventListener('click', () => {
+        if (confirm('هل تريد مسح السلة؟')) {
+            cart = [];
+            updateCartDisplay();
+        }
+    });
+
+    // Open payment modal
+    checkoutBtn.addEventListener('click', () => {
+        paidAmount = 0;
+        updatePaymentDisplay();
+        document.getElementById('summary-items').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+        document.getElementById('summary-total').textContent = formatPrice(currentOrderTotal);
+        paymentModal.classList.add('active');
+    });
+
+    // Close payment modal
+    document.getElementById('close-payment').addEventListener('click', () => {
+        paymentModal.classList.remove('active');
+    });
+
+    document.getElementById('cancel-payment').addEventListener('click', () => {
+        paymentModal.classList.remove('active');
+    });
+
+    // Unavailable bills toggle
+    document.querySelectorAll('.unavailable-bill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const bill = parseInt(btn.dataset.bill);
+            if (unavailableBills.has(bill)) {
+                unavailableBills.delete(bill);
+                btn.classList.remove('unavailable');
+            } else {
+                unavailableBills.add(bill);
+                btn.classList.add('unavailable');
+            }
+            updatePaymentDisplay();
+        });
+    });
+
+    // Bill buttons
+    document.querySelectorAll('.bill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            paidAmount += parseInt(btn.dataset.amount);
+            updatePaymentDisplay();
+        });
+    });
+
+    // Clear paid amount
+    document.getElementById('clear-paid').addEventListener('click', () => {
+        paidAmount = 0;
+        updatePaymentDisplay();
+    });
+
+    // Update payment display
+    function updatePaymentDisplay() {
+        document.getElementById('paid-amount').textContent = formatPrice(paidAmount);
+        
+        const change = paidAmount - currentOrderTotal;
+        const changeSection = document.getElementById('change-section');
+        const changeWarning = document.getElementById('change-warning');
+        const confirmBtn = document.getElementById('confirm-payment');
+        
+        if (paidAmount >= currentOrderTotal) {
+            // Calculate change breakdown with available bills
+            const result = calculateChangeBreakdownWithAvailability(change);
+            
+            if (result.success) {
+                // Exact change is possible
+                changeWarning.style.display = 'none';
+                changeSection.style.display = 'block';
+                document.getElementById('change-amount').textContent = formatPrice(change);
+                
+                const breakdownHtml = result.breakdown.map(b => 
+                    `<div class="change-bill"><span class="change-bill-count">${b.count}×</span> ${formatNumber(b.bill)}</div>`
+                ).join('');
+                document.getElementById('change-breakdown').innerHTML = breakdownHtml;
+                
+                confirmBtn.disabled = false;
+            } else {
+                // Exact change is NOT possible with available bills
+                changeSection.style.display = 'none';
+                changeWarning.style.display = 'block';
+                
+                // Find suggestions for what the customer could give
+                const suggestions = findCustomerBillSuggestions(currentOrderTotal, paidAmount);
+                
+                if (suggestions.length > 0) {
+                    changeWarning.classList.remove('change-impossible');
+                    document.getElementById('change-warning-title').textContent = 'لا يمكن إرجاع الباقي بدقة';
+                    document.getElementById('change-warning-text').innerHTML = 
+                        `الباقي المطلوب: <strong>${formatPrice(change)}</strong><br>` +
+                        `لا يمكن إرجاع هذا المبلغ بالفئات المتوفرة.<br>` +
+                        `اطلب من الزبون إعطاء إحدى الفئات التالية بدلاً من المبلغ الحالي:`;
+                    
+                    const suggestionsHtml = suggestions.map(s => 
+                        `<div class="suggestion-bill" title="الباقي: ${formatPrice(s.change)}">${formatNumber(s.customerGives)} ← الباقي: ${formatPrice(s.change)}</div>`
+                    ).join('');
+                    document.getElementById('suggestion-bills').innerHTML = suggestionsHtml;
+                    
+                    confirmBtn.disabled = true;
+                } else {
+                    // No good suggestions found
+                    changeWarning.classList.add('change-impossible');
+                    document.getElementById('change-warning-title').textContent = 'تعذر إرجاع الباقي';
+                    document.getElementById('change-warning-text').innerHTML = 
+                        `الباقي المطلوب: <strong>${formatPrice(change)}</strong><br>` +
+                        `لا يمكن إرجاع هذا المبلغ بالفئات المتوفرة حالياً.<br>` +
+                        `قد تحتاج لتوفير فئات إضافية أو أن يدفع الزبون بمبلغ مختلف.`;
+                    document.getElementById('suggestion-bills').innerHTML = '';
+                    
+                    confirmBtn.disabled = true;
+                }
+            }
+        } else {
+            changeSection.style.display = 'none';
+            changeWarning.style.display = 'none';
+            confirmBtn.disabled = true;
+        }
+    }
+
+    // Calculate optimal change breakdown using only available bills
+    function calculateChangeBreakdownWithAvailability(amount) {
+        const breakdown = [];
+        let remaining = amount;
+        
+        // Get available bills (excluding unavailable ones)
+        const availableBills = IQD_BILLS.filter(b => !unavailableBills.has(b));
+        
+        for (const bill of availableBills) {
+            if (remaining >= bill) {
+                const count = Math.floor(remaining / bill);
+                breakdown.push({ bill, count });
+                remaining -= count * bill;
+            }
+        }
+        
+        // Check if we could give exact change
+        const success = remaining === 0;
+        
+        return { success, breakdown, remaining };
+    }
+
+    // Find what bills the customer could give to make exact change possible
+    function findCustomerBillSuggestions(total, currentPaid) {
+        const suggestions = [];
+        const availableBills = IQD_BILLS.filter(b => !unavailableBills.has(b));
+        
+        // Try different amounts the customer could pay
+        const possiblePayments = [];
+        
+        // Generate possible payment amounts from bill combinations
+        for (const bill of IQD_BILLS) {
+            if (bill >= total) {
+                possiblePayments.push(bill);
+            }
+            // Also try common combinations
+            for (const bill2 of IQD_BILLS) {
+                const combo = bill + bill2;
+                if (combo >= total && combo !== currentPaid) {
+                    possiblePayments.push(combo);
+                }
+            }
+        }
+        
+        // Remove duplicates and current paid amount
+        const uniquePayments = [...new Set(possiblePayments)]
+            .filter(p => p !== currentPaid && p >= total)
+            .sort((a, b) => a - b);
+        
+        for (const payment of uniquePayments) {
+            const changeNeeded = payment - total;
+            const result = calculateChangeBreakdownWithAvailability(changeNeeded);
+            
+            if (result.success) {
+                suggestions.push({
+                    customerGives: payment,
+                    change: changeNeeded
+                });
+                
+                // Limit to 5 suggestions
+                if (suggestions.length >= 5) break;
+            }
+        }
+        
+        return suggestions;
+    }
+
+    // Calculate optimal change breakdown (original - for reference)
+    function calculateChangeBreakdown(amount) {
+        const breakdown = [];
+        let remaining = amount;
+        
+        for (const bill of IQD_BILLS) {
+            if (remaining >= bill) {
+                const count = Math.floor(remaining / bill);
+                breakdown.push({ bill, count });
+                remaining -= count * bill;
+            }
+        }
+        
+        return breakdown;
+    }
+
+    // Confirm payment and create order
+    document.getElementById('confirm-payment').addEventListener('click', async () => {
+        const confirmBtn = document.getElementById('confirm-payment');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span>جاري المعالجة...</span>';
+        
+        try {
+            // Create order
+            const response = await fetch('/api/order/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: cart.map(item => ({ id: item.id, quantity: item.quantity })),
+                    amount_paid: paidAmount
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Try to print receipt
+                let printStatus = 'جاري الطباعة...';
+                try {
+                    const printResponse = await fetch(`/api/order/${data.order.id}/print/`, {
+                        method: 'POST'
+                    });
+                    const printData = await printResponse.json();
+                    printStatus = printData.success ? 'تمت الطباعة ✓' : `الطباعة: ${printData.error}`;
+                } catch (e) {
+                    printStatus = 'تعذرت الطباعة';
+                }
+                
+                // Show success modal
+                paymentModal.classList.remove('active');
+                document.getElementById('success-order-number').textContent = data.order.order_number;
+                document.getElementById('success-print-status').textContent = printStatus;
+                successModal.classList.add('active');
+                
+                // Clear cart
+                cart = [];
+                updateCartDisplay();
+            } else {
+                showToast(data.error || 'حدث خطأ', 'error');
+            }
+        } catch (error) {
+            showToast('حدث خطأ في الاتصال', 'error');
+            console.error(error);
+        }
+        
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = `
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M5 13l4 4L19 7"/>
+            </svg>
+            تأكيد وطباعة
+        `;
+    });
+
+    // New order button
+    document.getElementById('new-order-btn').addEventListener('click', () => {
+        successModal.classList.remove('active');
+    });
+
+    // Close modals on overlay click
+    [paymentModal, successModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            paymentModal.classList.remove('active');
+            successModal.classList.remove('active');
+        }
+    });
+</script>
+{% endblock %}
