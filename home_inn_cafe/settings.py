@@ -99,16 +99,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# =============================================================================
-# Printer Configuration - Xprinter XP-260III
-# =============================================================================
-PRINTER_TYPE = 'usb'  # Options: 'usb' or 'network'
-PRINTER_USB_NAME = 'XP-260III'  # Windows printer name (as shown in Devices)
-PRINTER_NETWORK_IP = '192.168.1.100'  # If using Ethernet connection
-PRINTER_NETWORK_PORT = 9100
-
-# Cafe Information (for receipts)
+# Cafe Information
 CAFE_NAME = 'هوم إن كافيه'
 CAFE_NAME_EN = 'Home Inn Cafe'
-CAFE_ADDRESS = 'العراق'
-CAFE_PHONE = ''

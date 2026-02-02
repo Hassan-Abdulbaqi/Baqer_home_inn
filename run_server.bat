@@ -31,7 +31,7 @@ if %errorlevel% neq 0 (
 echo ✓ Database ready!
 echo.
 
-echo [3/4] Getting your IP address...
+echo [3/4] ...
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do (
     set IP=%%a
     goto :found_ip

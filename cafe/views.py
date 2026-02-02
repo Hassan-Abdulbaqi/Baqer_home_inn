@@ -10,7 +10,8 @@ from django.utils import timezone
 from django.conf import settings
 
 from .models import Category, MenuItem, Order, OrderItem
-from .printer import print_receipt
+# Printing disabled - uncomment below to enable
+# from .printer import print_receipt
 
 
 def cashier_view(request):
@@ -140,24 +141,12 @@ def api_create_order(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_print_receipt(request, order_id):
-    """API: Print receipt for an order"""
-    try:
-        order = Order.objects.get(id=order_id)
-        
-        # Print 2 copies (customer + cashier)
-        success, message = print_receipt(order, copies=2)
-        
-        if success:
-            order.is_printed = True
-            order.save()
-            return JsonResponse({'success': True, 'message': 'تمت الطباعة بنجاح'})
-        else:
-            return JsonResponse({'success': False, 'error': message}, status=500)
-            
-    except Order.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'الطلب غير موجود'}, status=404)
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    """API: Print receipt for an order (DISABLED)"""
+    # Printing functionality has been disabled
+    return JsonResponse({
+        'success': False, 
+        'error': 'الطباعة معطلة حالياً - Printing is disabled'
+    }, status=501)
 
 
 @require_http_methods(["GET"])
